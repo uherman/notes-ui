@@ -1,6 +1,6 @@
 /// This module contains command handlers for WebSocket interactions with Redis.
 /// It includes functions to handle get, set, and delete commands.
-use crate::{Note, WebSocketResponse};
+use crate::models::{Note, WebSocketResponse};
 use futures_util::{stream::SplitSink, SinkExt};
 use redis::{aio::MultiplexedConnection, AsyncCommands};
 use std::sync::Arc;

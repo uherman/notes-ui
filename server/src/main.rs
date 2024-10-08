@@ -1,39 +1,16 @@
 mod commands;
+mod models;
+
 use commands::{handle_delete_command, handle_get_command, handle_set_command};
 use futures_util::{SinkExt, StreamExt};
+use models::{Command, WebSocketMessage, WebSocketResponse};
 use redis::aio::MultiplexedConnection;
-use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use warp::{filters::ws::WebSocket, Filter};
 
 #[macro_use]
 extern crate log;
-
-#[derive(Serialize, Deserialize, Debug)]
-struct Note {
-    id: String,
-    content: String,
-    updated: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-enum Command {
-    Get,
-    Set,
-    Delete,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct WebSocketMessage {
-    command: Command,
-    note: Option<Note>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct WebSocketResponse {
-    response: u16,
-}
 
 #[tokio::main]
 async fn main() {
