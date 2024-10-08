@@ -1,25 +1,28 @@
 mod commands;
 mod models;
 
+#[macro_use]
+extern crate log;
+extern crate dotenv;
+
 use commands::{handle_delete_command, handle_get_command, handle_set_command};
+use dotenv::dotenv;
 use futures_util::{stream::SplitSink, SinkExt, StreamExt};
 use models::{Command, WebSocketMessage, WebSocketResponse};
 use redis::aio::MultiplexedConnection;
-use std::sync::Arc;
+use std::{env, sync::Arc};
 use tokio::sync::Mutex;
 use warp::{
     filters::ws::{Message, WebSocket},
     Filter,
 };
 
-#[macro_use]
-extern crate log;
-
 /// Entry point for the application.
 ///
 /// Initializes the logger, sets up the Redis connection, and starts the WebSocket server.
 #[tokio::main]
 async fn main() {
+    dotenv().ok();
     pretty_env_logger::init();
     warp::serve(setup_routes(init_redis_connection().await))
         .run(([127, 0, 0, 1], 3030))
@@ -31,7 +34,7 @@ async fn main() {
 /// # Returns
 /// An `Arc<Mutex<MultiplexedConnection>>` representing the Redis connection.
 async fn init_redis_connection() -> Arc<Mutex<MultiplexedConnection>> {
-    let redis_client = redis::Client::open("redis://127.0.0.1/").unwrap();
+    let redis_client = redis::Client::open(env::var("REDIS_URL").unwrap()).unwrap();
     Arc::new(Mutex::new(
         redis_client
             .get_multiplexed_async_connection()
