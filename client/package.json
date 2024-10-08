@@ -1,5 +1,5 @@
 {
-	"name": "notes-ui",
+	"name": "notes-md-ui",
 	"version": "0.0.1",
 	"private": true,
 	"scripts": {
@@ -36,14 +36,9 @@
 		"lucide-svelte": "^0.447.0",
 		"mode-watcher": "^0.4.1",
 		"nanoid": "^5.0.7",
-		"rehype": "^13.0.2",
 		"rehype-highlight": "^7.0.0",
-		"rehype-parse": "^9.0.1",
-		"rehype-sanitize": "^6.0.0",
-		"rehype-stringify": "^10.0.1",
 		"remark-gfm": "^4.0.0",
 		"svelte-exmarkdown": "^3.0.5",
-		"svelte-sonner": "^0.3.28",
-		"unified": "^11.0.5"
+		"svelte-sonner": "^0.3.28"
 	}
 }
