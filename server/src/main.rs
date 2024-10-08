@@ -15,6 +15,9 @@ use warp::{
 #[macro_use]
 extern crate log;
 
+/// Entry point for the application.
+///
+/// Initializes the logger, sets up the Redis connection, and starts the WebSocket server.
 #[tokio::main]
 async fn main() {
     pretty_env_logger::init();
@@ -23,6 +26,10 @@ async fn main() {
         .await;
 }
 
+/// Initializes the Redis connection.
+///
+/// # Returns
+/// An `Arc<Mutex<MultiplexedConnection>>` representing the Redis connection.
 async fn init_redis_connection() -> Arc<Mutex<MultiplexedConnection>> {
     let redis_client = redis::Client::open("redis://127.0.0.1/").unwrap();
     Arc::new(Mutex::new(
@@ -33,6 +40,13 @@ async fn init_redis_connection() -> Arc<Mutex<MultiplexedConnection>> {
     ))
 }
 
+/// Sets up the WebSocket routes.
+///
+/// # Parameters
+/// - `redis_conn`: An `Arc<Mutex<MultiplexedConnection>>` representing the Redis connection.
+///
+/// # Returns
+/// A `warp::Filter` that handles WebSocket connections.
 fn setup_routes(
     redis_conn: Arc<Mutex<MultiplexedConnection>>,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
@@ -44,6 +58,11 @@ fn setup_routes(
         })
 }
 
+/// Handles a new WebSocket connection.
+///
+/// # Parameters
+/// - `ws`: The WebSocket connection.
+/// - `redis_conn`: An `Arc<Mutex<MultiplexedConnection>>` representing the Redis connection.
 async fn connected(ws: WebSocket, redis_conn: Arc<Mutex<MultiplexedConnection>>) {
     info!("Client connected");
     let (mut ws_tx, mut ws_rx) = ws.split();
@@ -59,6 +78,12 @@ async fn connected(ws: WebSocket, redis_conn: Arc<Mutex<MultiplexedConnection>>)
     }
 }
 
+/// Handles an incoming WebSocket message.
+///
+/// # Parameters
+/// - `msg`: The message received from the WebSocket.
+/// - `ws_tx`: The WebSocket sender.
+/// - `redis_conn`: An `Arc<Mutex<MultiplexedConnection>>` representing the Redis connection.
 async fn handle_message(
     msg: &str,
     ws_tx: &mut SplitSink<WebSocket, Message>,
@@ -98,6 +123,11 @@ async fn handle_message(
     }
 }
 
+/// Sends an error response over the WebSocket.
+///
+/// # Parameters
+/// - `ws_tx`: The WebSocket sender.
+/// - `code`: The error code to send.
 async fn send_error_response(ws_tx: &mut SplitSink<WebSocket, Message>, code: u16) {
     let error_response = serde_json::to_string(&WebSocketResponse { response: code }).unwrap();
     ws_tx
