@@ -26,7 +26,7 @@ pub(crate) async fn handle_get_command(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut conn = redis_conn.lock().await;
 
-    let keys: Vec<String> = match conn.keys::<&str, Vec<String>>("*").await {
+    let keys: Vec<String> = match conn.keys::<&str, Vec<String>>("note:*").await {
         Ok(keys) => keys,
         Err(e) => {
             send_response(ws_tx, 500, Some(GET_COMMAND_ERROR)).await;
@@ -90,7 +90,7 @@ pub(crate) async fn handle_set_command(
     };
 
     if let Err(e) = conn
-        .set::<&str, String, ()>(&note.id, serialized_note)
+        .set::<&str, String, ()>(format!("note:{}", &note.id).as_str(), serialized_note)
         .await
     {
         send_response(ws_tx, 500, Some(SET_COMMAND_ERROR)).await;

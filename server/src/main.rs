@@ -10,7 +10,7 @@ use dotenv::dotenv;
 use futures_util::{stream::SplitSink, SinkExt, StreamExt};
 use models::{Command, WebSocketMessage, WebSocketResponse};
 use redis::aio::MultiplexedConnection;
-use std::{env, sync::Arc};
+use std::{collections::HashMap, env, sync::Arc};
 use tokio::sync::Mutex;
 use warp::{
     filters::ws::{Message, WebSocket},
@@ -55,10 +55,16 @@ fn setup_routes(
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
     let ws_route = warp::path("ws")
         .and(warp::ws())
-        .map(move |ws: warp::ws::Ws| {
-            let redis_conn = redis_conn.clone();
-            ws.on_upgrade(move |socket| connected(socket, redis_conn))
-        });
+        .and(warp::query::<HashMap<String, String>>())
+        .and(with_redis_conn(redis_conn.clone()))
+        .map(
+            |ws: warp::ws::Ws,
+             query: HashMap<String, String>,
+             redis_conn: Arc<Mutex<MultiplexedConnection>>| {
+                let token = query.get("token").cloned().unwrap_or_default();
+                ws.on_upgrade(move |socket| connected(socket, redis_conn, token))
+            },
+        );
 
     let root_route = warp::path::end().map(|| {
         warp::reply::html(
@@ -69,12 +75,48 @@ fn setup_routes(
     ws_route.or(root_route).boxed()
 }
 
+/// Creates a Warp filter that provides a cloned Redis connection.
+///
+/// This function takes an `Arc<Mutex<MultiplexedConnection>>` representing a Redis connection
+/// and returns a Warp filter. The filter can be used in Warp routes to inject the Redis connection
+/// into route handlers.
+///
+/// # Arguments
+///
+/// * `redis_conn` - An `Arc<Mutex<MultiplexedConnection>>` representing the Redis connection.
+///
+/// # Returns
+///
+/// A Warp filter that extracts a cloned `Arc<Mutex<MultiplexedConnection>>`.
+fn with_redis_conn(
+    redis_conn: Arc<Mutex<MultiplexedConnection>>,
+) -> impl Filter<Extract = (Arc<Mutex<MultiplexedConnection>>,), Error = std::convert::Infallible> + Clone
+{
+    warp::any().map(move || redis_conn.clone())
+}
+
 /// Handles a new WebSocket connection.
 ///
 /// # Parameters
 /// - `ws`: The WebSocket connection.
 /// - `redis_conn`: An `Arc<Mutex<MultiplexedConnection>>` representing the Redis connection.
-async fn connected(ws: WebSocket, redis_conn: Arc<Mutex<MultiplexedConnection>>) {
+async fn connected(
+    mut ws: WebSocket,
+    redis_conn: Arc<Mutex<MultiplexedConnection>>,
+    token: String,
+) {
+    if token != env::var("TOKEN").unwrap() {
+        ws.send(Message::close_with(
+            warp::http::StatusCode::UNAUTHORIZED,
+            "Unauthorized",
+        ))
+        .await
+        .unwrap();
+
+        warn!("Unauthorized client attempted to connect {}", token);
+        return;
+    }
+
     info!("Client connected");
     let (mut ws_tx, mut ws_rx) = ws.split();
 
