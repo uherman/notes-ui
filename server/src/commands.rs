@@ -98,8 +98,6 @@ pub(crate) async fn handle_set_command(
     }
 
     send_response(ws_tx, 200, None).await;
-    info!("Saved note: {:?}", note.id);
-
     Ok(())
 }
 
@@ -122,7 +120,10 @@ pub(crate) async fn handle_delete_command(
 ) -> Result<(), Box<dyn std::error::Error>> {
     let mut conn = redis_conn.lock().await;
 
-    match conn.del::<&str, i16>(&id).await {
+    match conn
+        .del::<&str, i16>(format!("note:{}", &id).as_str())
+        .await
+    {
         Ok(count) => {
             if count == 0 {
                 error!("Failed to delete note since it does not exist: {:?}", id);
