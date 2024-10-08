@@ -120,12 +120,21 @@ async fn connected(
     info!("Client connected");
     let (mut ws_tx, mut ws_rx) = ws.split();
 
-    while let Some(msg) = ws_rx.next().await {
-        if let Ok(msg) = msg {
-            if msg.is_text() {
-                handle_message(msg.to_str().unwrap(), &mut ws_tx, redis_conn.clone()).await;
-            } else {
-                send_error_response(&mut ws_tx, 400, None).await;
+    while let Some(result) = ws_rx.next().await {
+        match result {
+            Ok(msg) => {
+                if msg.is_text() {
+                    handle_message(msg.to_str().unwrap(), &mut ws_tx, redis_conn.clone()).await;
+                } else if msg.is_close() {
+                    info!("Client disconnected");
+                    break;
+                } else {
+                    send_error_response(&mut ws_tx, 400, None).await;
+                }
+            }
+            Err(e) => {
+                warn!("WebSocket error: {}", e);
+                break;
             }
         }
     }
@@ -191,8 +200,11 @@ async fn send_error_response(
         message: message.map(|s| s.to_string()),
     })
     .unwrap();
-    ws_tx
-        .send(warp::ws::Message::text(error_response))
-        .await
-        .unwrap();
+
+    match ws_tx.send(warp::ws::Message::text(error_response)).await {
+        Ok(_) => {}
+        Err(e) => {
+            error!("Failed to send error response: {}", e);
+        }
+    }
 }

@@ -43,7 +43,7 @@ pub(crate) async fn handle_get_command(
                 return Err(Box::new(e));
             }
         };
-        notes.push(note);
+        notes.push(serde_json::from_str::<Note>(&note).unwrap());
     }
 
     let serialized_notes = match serde_json::to_string(&notes) {
