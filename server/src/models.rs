@@ -10,8 +10,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Note {
     pub id: String,
-    pub content: String,
-    pub updated: String,
+    pub content: Option<String>,
+    pub updated: Option<String>,
 }
 
 /// Enum representing possible commands that can be sent over WebSocket.
