@@ -1,3 +1,5 @@
+/// This module contains command handlers for WebSocket interactions with Redis.
+/// It includes functions to handle get, set, and delete commands.
 use crate::{Note, WebSocketResponse};
 use futures_util::{stream::SplitSink, SinkExt};
 use redis::{aio::MultiplexedConnection, AsyncCommands};
@@ -5,6 +7,17 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use warp::filters::ws::{Message, WebSocket};
 
+/// Handles the "get" command by retrieving all keys and their associated values from Redis,
+/// serializing them to JSON, and sending them over the WebSocket connection.
+///
+/// # Arguments
+///
+/// * `ws_tx` - A mutable reference to the WebSocket sender.
+/// * `redis_conn` - An Arc-wrapped, Mutex-protected Redis connection.
+///
+/// # Returns
+///
+/// * `Result<(), Box<dyn std::error::Error>>` - An empty result on success, or an error on failure.
 pub(crate) async fn handle_get_command(
     ws_tx: &mut SplitSink<WebSocket, Message>,
     redis_conn: Arc<Mutex<MultiplexedConnection>>,
@@ -47,6 +60,18 @@ pub(crate) async fn handle_get_command(
     Ok(())
 }
 
+/// Handles the "set" command by serializing a note and storing it in Redis,
+/// then sending a response over the WebSocket connection.
+///
+/// # Arguments
+///
+/// * `ws_tx` - A mutable reference to the WebSocket sender.
+/// * `redis_conn` - An Arc-wrapped, Mutex-protected Redis connection.
+/// * `note` - The note to be stored.
+///
+/// # Returns
+///
+/// * `Result<(), Box<dyn std::error::Error>>` - An empty result on success, or an error on failure.
 pub(crate) async fn handle_set_command(
     ws_tx: &mut SplitSink<WebSocket, Message>,
     redis_conn: Arc<Mutex<MultiplexedConnection>>,
@@ -76,6 +101,18 @@ pub(crate) async fn handle_set_command(
     Ok(())
 }
 
+/// Handles the "delete" command by deleting a note from Redis,
+/// then sending a response over the WebSocket connection.
+///
+/// # Arguments
+///
+/// * `ws_tx` - A mutable reference to the WebSocket sender.
+/// * `redis_conn` - An Arc-wrapped, Mutex-protected Redis connection.
+/// * `id` - The ID of the note to be deleted.
+///
+/// # Returns
+///
+/// * `Result<(), Box<dyn std::error::Error>>` - An empty result on success, or an error on failure.
 pub(crate) async fn handle_delete_command(
     ws_tx: &mut SplitSink<WebSocket, Message>,
     redis_conn: Arc<Mutex<MultiplexedConnection>>,
@@ -103,6 +140,12 @@ pub(crate) async fn handle_delete_command(
     Ok(())
 }
 
+/// Sends a response over the WebSocket connection.
+///
+/// # Arguments
+///
+/// * `ws_tx` - A mutable reference to the WebSocket sender.
+/// * `response` - The response code to be sent.
 async fn send_response(ws_tx: &mut SplitSink<WebSocket, Message>, response: u16) {
     let error_response = serde_json::to_string(&WebSocketResponse { response }).unwrap();
 
