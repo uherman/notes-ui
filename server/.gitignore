@@ -15,3 +15,4 @@ Cargo.lock
 
 # Env file
 .env
+.env.*

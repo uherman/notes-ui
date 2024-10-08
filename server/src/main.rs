@@ -25,7 +25,7 @@ async fn main() {
     dotenv().ok();
     pretty_env_logger::init();
     warp::serve(setup_routes(init_redis_connection().await))
-        .run(([127, 0, 0, 1], 3030))
+        .run(([127, 0, 0, 1], 5000))
         .await;
 }
 
@@ -53,12 +53,20 @@ async fn init_redis_connection() -> Arc<Mutex<MultiplexedConnection>> {
 fn setup_routes(
     redis_conn: Arc<Mutex<MultiplexedConnection>>,
 ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    warp::path("echo")
+    let ws_route = warp::path("ws")
         .and(warp::ws())
         .map(move |ws: warp::ws::Ws| {
             let redis_conn = redis_conn.clone();
             ws.on_upgrade(move |socket| connected(socket, redis_conn))
-        })
+        });
+
+    let root_route = warp::path::end().map(|| {
+        warp::reply::html(
+            "<body style='display:flex;align-items:center;justify-content:center;height:100vh;background:#1e2030;'><h1 style='text-center'>📝</h1></body>",
+        )
+    });
+
+    ws_route.or(root_route).boxed()
 }
 
 /// Handles a new WebSocket connection.

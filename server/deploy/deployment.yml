@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notes-md-api
+  labels:
+    app: notes-md-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notes-md-api
+  template:
+    metadata:
+      labels:
+        app: notes-md-api
+    spec:
+      containers:
+        - name: notes-md-api
+          image: uherman/notes-md-api:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5000
+          env:
+            - name: REDIS_URL
+              value: ${REDIS_URL}
+            - name: RUST_LOG
+              value: info
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notes-md-api
+spec:
+  type: ClusterIP
+  selector:
+    app: notes-md-api
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
