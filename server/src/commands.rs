@@ -5,6 +5,10 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use warp::filters::ws::{Message, WebSocket};
 
+const GET_COMMAND_ERROR: &str = "An error occurred while retrieving the notes";
+const SET_COMMAND_ERROR: &str = "An error occurred while saving the note";
+const DELETE_COMMAND_ERROR: &str = "An error occurred while deleting the note";
+
 /// Handles the "get" command by retrieving all keys and their associated values from Redis,
 /// serializing them to JSON, and sending them over the WebSocket connection.
 ///
@@ -25,7 +29,7 @@ pub(crate) async fn handle_get_command(
     let keys: Vec<String> = match conn.keys::<&str, Vec<String>>("*").await {
         Ok(keys) => keys,
         Err(e) => {
-            send_response(ws_tx, 500).await;
+            send_response(ws_tx, 500, Some(GET_COMMAND_ERROR)).await;
             return Err(Box::new(e));
         }
     };
@@ -35,7 +39,7 @@ pub(crate) async fn handle_get_command(
         let note: String = match conn.get::<&str, String>(&key).await {
             Ok(note) => note,
             Err(e) => {
-                send_response(ws_tx, 500).await;
+                send_response(ws_tx, 500, Some(GET_COMMAND_ERROR)).await;
                 return Err(Box::new(e));
             }
         };
@@ -45,7 +49,7 @@ pub(crate) async fn handle_get_command(
     let serialized_notes = match serde_json::to_string(&notes) {
         Ok(sn) => sn,
         Err(e) => {
-            send_response(ws_tx, 500).await;
+            send_response(ws_tx, 500, Some(GET_COMMAND_ERROR)).await;
             return Err(Box::new(e));
         }
     };
@@ -80,7 +84,7 @@ pub(crate) async fn handle_set_command(
     let serialized_note = match serde_json::to_string(&note) {
         Ok(sn) => sn,
         Err(e) => {
-            send_response(ws_tx, 500).await;
+            send_response(ws_tx, 500, Some(SET_COMMAND_ERROR)).await;
             return Err(Box::new(e));
         }
     };
@@ -89,11 +93,11 @@ pub(crate) async fn handle_set_command(
         .set::<&str, String, ()>(&note.id, serialized_note)
         .await
     {
-        send_response(ws_tx, 500).await;
+        send_response(ws_tx, 500, Some(SET_COMMAND_ERROR)).await;
         return Err(Box::new(e));
     }
 
-    send_response(ws_tx, 200).await;
+    send_response(ws_tx, 200, None).await;
     info!("Saved note: {:?}", note.id);
 
     Ok(())
@@ -122,17 +126,17 @@ pub(crate) async fn handle_delete_command(
         Ok(count) => {
             if count == 0 {
                 error!("Failed to delete note since it does not exist: {:?}", id);
-                send_response(ws_tx, 404).await;
+                send_response(ws_tx, 404, Some("Note not found")).await;
                 return Ok(());
             }
         }
         Err(e) => {
-            send_response(ws_tx, 500).await;
+            send_response(ws_tx, 500, Some(DELETE_COMMAND_ERROR)).await;
             return Err(Box::new(e));
         }
     };
 
-    send_response(ws_tx, 200).await;
+    send_response(ws_tx, 200, None).await;
     info!("Deleted note: {:?}", id);
 
     Ok(())
@@ -144,8 +148,16 @@ pub(crate) async fn handle_delete_command(
 ///
 /// * `ws_tx` - A mutable reference to the WebSocket sender.
 /// * `response` - The response code to be sent.
-async fn send_response(ws_tx: &mut SplitSink<WebSocket, Message>, response: u16) {
-    let error_response = serde_json::to_string(&WebSocketResponse { response }).unwrap();
+async fn send_response(
+    ws_tx: &mut SplitSink<WebSocket, Message>,
+    response: u16,
+    message: Option<&str>,
+) {
+    let error_response = serde_json::to_string(&WebSocketResponse {
+        response,
+        message: message.map(|s| s.to_string()),
+    })
+    .unwrap();
 
     match ws_tx.send(warp::ws::Message::text(error_response)).await {
         Ok(_) => {}

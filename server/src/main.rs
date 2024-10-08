@@ -72,7 +72,7 @@ async fn connected(ws: WebSocket, redis_conn: Arc<Mutex<MultiplexedConnection>>)
             if msg.is_text() {
                 handle_message(msg.to_str().unwrap(), &mut ws_tx, redis_conn.clone()).await;
             } else {
-                send_error_response(&mut ws_tx, 400).await;
+                send_error_response(&mut ws_tx, 400, None).await;
             }
         }
     }
@@ -102,7 +102,7 @@ async fn handle_message(
                         error!("Error while handling SET command: {}", e);
                     }
                 } else {
-                    send_error_response(ws_tx, 400).await;
+                    send_error_response(ws_tx, 400, Some("Note is required")).await;
                 }
             }
             Command::Delete => {
@@ -112,13 +112,13 @@ async fn handle_message(
                         error!("Error while handling DELETE command: {}", e);
                     }
                 } else {
-                    send_error_response(ws_tx, 400).await;
+                    send_error_response(ws_tx, 400, Some("Note is required")).await;
                 }
             }
         },
         Err(e) => {
-            info!("Failed to deserialize WebSocketMessage: {}", e);
-            send_error_response(ws_tx, 400).await;
+            error!("Failed to deserialize WebSocketMessage: {}", e);
+            send_error_response(ws_tx, 400, Some(e.to_string().as_str())).await;
         }
     }
 }
@@ -128,8 +128,16 @@ async fn handle_message(
 /// # Parameters
 /// - `ws_tx`: The WebSocket sender.
 /// - `code`: The error code to send.
-async fn send_error_response(ws_tx: &mut SplitSink<WebSocket, Message>, code: u16) {
-    let error_response = serde_json::to_string(&WebSocketResponse { response: code }).unwrap();
+async fn send_error_response(
+    ws_tx: &mut SplitSink<WebSocket, Message>,
+    code: u16,
+    message: Option<&str>,
+) {
+    let error_response = serde_json::to_string(&WebSocketResponse {
+        response: code,
+        message: message.map(|s| s.to_string()),
+    })
+    .unwrap();
     ws_tx
         .send(warp::ws::Message::text(error_response))
         .await

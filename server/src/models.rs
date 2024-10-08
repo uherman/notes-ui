@@ -48,4 +48,5 @@ pub struct WebSocketMessage {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct WebSocketResponse {
     pub response: u16,
+    pub message: Option<String>,
 }
