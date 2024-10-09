@@ -34,40 +34,5 @@ spec:
     app: notes-md-ui
   ports:
     - protocol: TCP
-      port: 3000
+      port: 80
       targetPort: 3000
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: notes-md-ui
-  annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-production
-    ingressClassName: traefik
-spec:
-  tls:
-    - hosts:
-        - notes.null.care
-        - www.notes.null.care
-      secretName: notes-md-tls
-  rules:
-    - host: notes.null.care
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: notes-md-ui
-                port:
-                  number: 3000
-    - host: www.notes.null.care
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: notes-md-ui
-                port:
-                  number: 3000

@@ -1,210 +1,116 @@
-mod commands;
 mod models;
+mod websocket_handler;
 
 #[macro_use]
-extern crate log;
+extern crate rocket;
 extern crate dotenv;
 
-use commands::{handle_delete_command, handle_get_command, handle_set_command};
 use dotenv::dotenv;
-use futures_util::{stream::SplitSink, SinkExt, StreamExt};
-use models::{Command, WebSocketMessage, WebSocketResponse};
+use futures_util::{SinkExt, StreamExt};
 use redis::aio::MultiplexedConnection;
-use std::{collections::HashMap, env, sync::Arc};
-use tokio::sync::Mutex;
-use warp::{
-    filters::ws::{Message, WebSocket},
-    Filter,
-};
+use std::{borrow::Cow, env};
+use websocket_handler::handle_websocket_message;
+use ws::frame::{CloseCode, CloseFrame};
 
-/// Entry point for the application.
+/// WebSocket route handler.
 ///
-/// Initializes the logger, sets up the Redis connection, and starts the WebSocket server.
-#[tokio::main]
-async fn main() {
-    dotenv().ok();
-    pretty_env_logger::init();
-    warp::serve(setup_routes(init_redis_connection().await))
-        .run(([127, 0, 0, 1], 5000))
-        .await;
-}
-
-/// Initializes the Redis connection.
-///
-/// # Returns
-/// An `Arc<Mutex<MultiplexedConnection>>` representing the Redis connection.
-async fn init_redis_connection() -> Arc<Mutex<MultiplexedConnection>> {
-    let redis_client = redis::Client::open(env::var("REDIS_URL").unwrap()).unwrap();
-    Arc::new(Mutex::new(
-        redis_client
-            .get_multiplexed_async_connection()
-            .await
-            .unwrap(),
-    ))
-}
-
-/// Sets up the WebSocket routes.
-///
-/// # Parameters
-/// - `redis_conn`: An `Arc<Mutex<MultiplexedConnection>>` representing the Redis connection.
-///
-/// # Returns
-/// A `warp::Filter` that handles WebSocket connections.
-fn setup_routes(
-    redis_conn: Arc<Mutex<MultiplexedConnection>>,
-) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-    let ws_route = warp::path("ws")
-        .and(warp::ws())
-        .and(warp::query::<HashMap<String, String>>())
-        .and(with_redis_conn(redis_conn.clone()))
-        .map(
-            |ws: warp::ws::Ws,
-             query: HashMap<String, String>,
-             redis_conn: Arc<Mutex<MultiplexedConnection>>| {
-                let token = query.get("token").cloned().unwrap_or_default();
-                ws.on_upgrade(move |socket| connected(socket, redis_conn, token))
-            },
-        );
-
-    let root_route = warp::path::end().map(|| {
-        warp::reply::html(
-            "<body style='display:flex;align-items:center;justify-content:center;height:100vh;background:#1e2030;'><h1 style='text-center'>📝</h1></body>",
-        )
-    });
-
-    ws_route.or(root_route).boxed()
-}
-
-/// Creates a Warp filter that provides a cloned Redis connection.
-///
-/// This function takes an `Arc<Mutex<MultiplexedConnection>>` representing a Redis connection
-/// and returns a Warp filter. The filter can be used in Warp routes to inject the Redis connection
-/// into route handlers.
+/// This function handles incoming WebSocket connections and processes messages
+/// based on the provided token. If the token is invalid, the connection is closed
+/// with an unauthorized status.
 ///
 /// # Arguments
 ///
-/// * `redis_conn` - An `Arc<Mutex<MultiplexedConnection>>` representing the Redis connection.
+/// * `ws` - The WebSocket instance.
+/// * `token` - The token used for authentication.
 ///
 /// # Returns
 ///
-/// A Warp filter that extracts a cloned `Arc<Mutex<MultiplexedConnection>>`.
-fn with_redis_conn(
-    redis_conn: Arc<Mutex<MultiplexedConnection>>,
-) -> impl Filter<Extract = (Arc<Mutex<MultiplexedConnection>>,), Error = std::convert::Infallible> + Clone
-{
-    warp::any().map(move || redis_conn.clone())
-}
-
-/// Handles a new WebSocket connection.
-///
-/// # Parameters
-/// - `ws`: The WebSocket connection.
-/// - `redis_conn`: An `Arc<Mutex<MultiplexedConnection>>` representing the Redis connection.
-async fn connected(
-    mut ws: WebSocket,
-    redis_conn: Arc<Mutex<MultiplexedConnection>>,
-    token: String,
-) {
-    if token != env::var("TOKEN").unwrap() {
-        ws.send(Message::close_with(
-            warp::http::StatusCode::UNAUTHORIZED,
-            "Unauthorized",
-        ))
-        .await
-        .unwrap();
-
-        warn!("Unauthorized client attempted to connect {}", token);
-        return;
+/// A WebSocket channel.
+#[get("/ws?<token>")]
+async fn web_socket(ws: ws::WebSocket, token: String) -> ws::Channel<'static> {
+    if token != get_env_var("TOKEN") {
+        return ws.channel(move |mut stream| {
+            Box::pin(async move {
+                stream
+                    .send(ws::Message::Close(Some(CloseFrame {
+                        code: CloseCode::Bad(401),
+                        reason: Cow::Borrowed("Unauthorized"),
+                    })))
+                    .await
+                    .unwrap();
+                Ok(())
+            })
+        });
     }
 
-    info!("Client connected");
-    let (mut ws_tx, mut ws_rx) = ws.split();
-
-    while let Some(result) = ws_rx.next().await {
-        match result {
-            Ok(msg) => {
-                if msg.is_text() {
-                    handle_message(msg.to_str().unwrap(), &mut ws_tx, redis_conn.clone()).await;
-                } else if msg.is_close() {
-                    info!("Client disconnected");
-                    break;
-                } else {
-                    send_error_response(&mut ws_tx, 400, None).await;
-                }
-            }
-            Err(e) => {
-                warn!("WebSocket error: {}", e);
-                break;
-            }
-        }
-    }
-}
-
-/// Handles an incoming WebSocket message.
-///
-/// # Parameters
-/// - `msg`: The message received from the WebSocket.
-/// - `ws_tx`: The WebSocket sender.
-/// - `redis_conn`: An `Arc<Mutex<MultiplexedConnection>>` representing the Redis connection.
-async fn handle_message(
-    msg: &str,
-    ws_tx: &mut SplitSink<WebSocket, Message>,
-    redis_conn: Arc<Mutex<MultiplexedConnection>>,
-) {
-    match serde_json::from_str::<WebSocketMessage>(msg) {
-        Ok(message) => match message.command {
-            Command::Get => {
-                if let Err(e) = handle_get_command(ws_tx, redis_conn.clone()).await {
-                    error!("Error while handling GET command: {}", e);
-                }
-            }
-            Command::Set => {
-                if let Some(note) = message.note {
-                    if let Err(e) = handle_set_command(ws_tx, redis_conn.clone(), note).await {
-                        error!("Error while handling SET command: {}", e);
+    ws.channel(move |mut stream| {
+        Box::pin(async move {
+            while let Some(message) = stream.next().await {
+                if let Ok(msg) = message {
+                    if msg.is_text() {
+                        handle_websocket_message(
+                            &mut stream,
+                            msg.into_text().unwrap(),
+                            get_redis_connection().await.unwrap(),
+                        )
+                        .await;
                     }
-                } else {
-                    send_error_response(ws_tx, 400, Some("Note is required")).await;
                 }
             }
-            Command::Delete => {
-                if let Some(note) = message.note {
-                    if let Err(e) = handle_delete_command(ws_tx, redis_conn.clone(), note.id).await
-                    {
-                        error!("Error while handling DELETE command: {}", e);
-                    }
-                } else {
-                    send_error_response(ws_tx, 400, Some("Note is required")).await;
-                }
-            }
-        },
-        Err(e) => {
-            error!("Failed to deserialize WebSocketMessage: {}", e);
-            send_error_response(ws_tx, 400, Some(e.to_string().as_str())).await;
-        }
-    }
-}
-
-/// Sends an error response over the WebSocket.
-///
-/// # Parameters
-/// - `ws_tx`: The WebSocket sender.
-/// - `code`: The error code to send.
-async fn send_error_response(
-    ws_tx: &mut SplitSink<WebSocket, Message>,
-    code: u16,
-    message: Option<&str>,
-) {
-    let error_response = serde_json::to_string(&WebSocketResponse {
-        response: code,
-        message: message.map(|s| s.to_string()),
+            Ok(())
+        })
     })
-    .unwrap();
+}
 
-    match ws_tx.send(warp::ws::Message::text(error_response)).await {
-        Ok(_) => {}
-        Err(e) => {
-            error!("Failed to send error response: {}", e);
-        }
-    }
+/// Index route handler.
+///
+/// This function handles requests to the root URL and returns a simple greeting.
+///
+/// # Returns
+///
+/// A static string greeting.
+#[get("/")]
+fn index() -> &'static str {
+    "Hello, world!"
+}
+
+/// Rocket launch function.
+///
+/// This function initializes the Rocket framework, loads environment variables,
+/// and mounts the routes.
+///
+/// # Returns
+///
+/// A Rocket instance.
+#[launch]
+fn rocket() -> _ {
+    dotenv().ok();
+    rocket::build().mount("/", routes![index, web_socket])
+}
+
+/// Fetches an environment variable.
+///
+/// This function retrieves the value of the specified environment variable.
+///
+/// # Arguments
+///
+/// * `key` - The key of the environment variable.
+///
+/// # Returns
+///
+/// The value of the environment variable.
+fn get_env_var(key: &str) -> String {
+    env::var(key).unwrap()
+}
+
+/// Establishes a Redis connection.
+///
+/// This function creates and returns a multiplexed Redis connection.
+///
+/// # Returns
+///
+/// A Redis result containing a multiplexed connection.
+async fn get_redis_connection() -> redis::RedisResult<MultiplexedConnection> {
+    let client = redis::Client::open(get_env_var("REDIS_URL"))?;
+    client.get_multiplexed_async_connection().await
 }

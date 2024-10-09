@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: notes-md-proxy
+  name: notes-md-proxy
+spec:
+  selector:
+    matchLabels:
+      app: notes-md-proxy
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: notes-md-proxy
+        name: notes-md-proxy
+    spec:
+      containers:
+        - name: notes-md-proxy
+          image: "uherman/notes-md-proxy:latest"
+          imagePullPolicy: Always
+          resources:
+            requests:
+              memory: "256Mi"
+            limits:
+              memory: "256Mi"
+          ports:
+            - containerPort: 5000
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: notes-md-proxy
+  name: notes-md-proxy
+spec:
+  selector:
+    app: notes-md-proxy
+  ports:
+    - port: 5000
+      name: http
+      protocol: TCP
+  type: ClusterIP
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: notes-md-proxy
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
+    ingressClassName: traefik
+spec:
+  tls:
+    - hosts:
+        - notes.null.care
+        - www.notes.null.care
+      secretName: notes-md-tls
+  rules:
+    - host: notes.null.care
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: notes-md-proxy
+                port:
+                  number: 5000
+    - host: www.notes.null.care
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: notes-md-proxy
+                port:
+                  number: 5000

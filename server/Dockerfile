@@ -5,5 +5,7 @@ RUN cargo install --path .
 
 FROM debian:buster-slim as runner
 COPY --from=builder /usr/local/cargo/bin/notes-md-api /usr/local/bin/notes-md-api
-EXPOSE 5000
+ENV ROCKET_ADDRESS=0.0.0.0
+EXPOSE 8000
+
 CMD ["notes-md-api"]
