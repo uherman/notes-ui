@@ -6,13 +6,18 @@
 	import 'highlight.js/styles/github.css';
 	import { ModeWatcher } from 'mode-watcher';
 	import { connect, tryReconnect } from '$lib/utils/noteUtils';
-	import { signedIn } from '$lib/stores';
+	import { signedIn, toggleViewMode, viewMode } from '$lib/stores';
 	import { toast, Toaster } from 'svelte-sonner';
 
+	let loaded = false;
 	let value = '';
 
 	onMount(() => {
 		tryReconnect();
+		const timeout = setTimeout(() => {
+			loaded = true;
+			clearTimeout(timeout);
+		}, 300);
 	});
 
 	const authenticate = () => {
@@ -30,20 +35,29 @@
 <ModeWatcher />
 <Toaster richColors position="top-center" />
 
-{#if !$signedIn}
-	<main class="main">
-		<form on:submit|preventDefault={authenticate} class="login-form">
-			<input type="password" bind:value placeholder="Enter token" />
-		</form>
-	</main>
-{:else}
-	<main class="main">
-		<nav class="navbar">
-			<h1>Notes.md</h1>
-			<DarkModeToggle />
-		</nav>
-		<slot />
-	</main>
+{#if loaded}
+	{#if !$signedIn}
+		<main class="main">
+			<form on:submit|preventDefault={authenticate} class="login-form">
+				<input type="password" bind:value placeholder="Enter token" />
+			</form>
+		</main>
+	{:else}
+		<main class="main">
+			<nav class="navbar">
+				<h1>Notes.md</h1>
+				<div class="flex flex-row" style="gap: 30px; align-items:center;">
+					<button
+						class="btn-primary"
+						style="width:90px;text-transform: capitalize;"
+						on:click={toggleViewMode}>{$viewMode}</button
+					>
+					<DarkModeToggle />
+				</div>
+			</nav>
+			<slot />
+		</main>
+	{/if}
 {/if}
 
 <style>

@@ -9,6 +9,7 @@
 	import rehypeHighlight from 'rehype-highlight';
 	import type { Note } from '$lib/types';
 	import { mode } from 'mode-watcher';
+	import { viewMode } from '$lib/stores';
 
 	const plugins: Plugin[] = [
 		{
@@ -55,18 +56,22 @@
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <div class="container" on:keydown={handleKeyDown}>
-	<textarea
-		bind:value={note.content}
-		class="editor"
-		autocomplete="off"
-		autocorrect="off"
-		autocapitalize="off"
-		spellcheck="false"
-		on:keydown={handleTab}
-	></textarea>
-	<div class="markdown-body">
-		<Markdown bind:md={note.content} {plugins} />
-	</div>
+	{#if $viewMode !== 'preview'}
+		<textarea
+			bind:value={note.content}
+			class="editor"
+			autocomplete="off"
+			autocorrect="off"
+			autocapitalize="off"
+			spellcheck="false"
+			on:keydown={handleTab}
+		></textarea>
+	{/if}
+	{#if $viewMode !== 'editor'}
+		<div class="markdown-body">
+			<Markdown bind:md={note.content} {plugins} />
+		</div>
+	{/if}
 </div>
 
 <svelte:head>
