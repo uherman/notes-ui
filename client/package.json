@@ -32,6 +32,7 @@
 	"type": "module",
 	"dependencies": {
 		"@bytemd/plugin-gfm": "^1.21.0",
+		"@sveltejs/adapter-node": "^5.2.5",
 		"github-markdown-css": "^5.7.0",
 		"lucide-svelte": "^0.447.0",
 		"mode-watcher": "^0.4.1",

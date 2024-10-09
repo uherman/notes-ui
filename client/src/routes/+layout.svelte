@@ -1,21 +1,50 @@
 <script lang="ts">
 	import DarkModeToggle from '$lib/components/darkmode-toggle.svelte';
+	import { onMount } from 'svelte';
 	import '../app.css';
 	import '../markdown.css';
 	import 'highlight.js/styles/github.css';
-
 	import { ModeWatcher } from 'mode-watcher';
+	import { connect, tryReconnect } from '$lib/utils/noteUtils';
+	import { signedIn } from '$lib/stores';
+	import { toast, Toaster } from 'svelte-sonner';
+
+	let value = '';
+
+	onMount(() => {
+		tryReconnect();
+	});
+
+	const authenticate = () => {
+		connect(value);
+
+		const timeout = setTimeout(() => {
+			if (!$signedIn) {
+				toast.error('Unauthorized');
+			}
+			clearTimeout(timeout);
+		}, 300);
+	};
 </script>
 
 <ModeWatcher />
+<Toaster richColors position="top-center" />
 
-<main class="main">
-	<nav class="navbar">
-		<h1>Notes.md</h1>
-		<DarkModeToggle />
-	</nav>
-	<slot />
-</main>
+{#if !$signedIn}
+	<main class="main">
+		<form on:submit|preventDefault={authenticate} class="login-form">
+			<input type="password" bind:value placeholder="Enter token" />
+		</form>
+	</main>
+{:else}
+	<main class="main">
+		<nav class="navbar">
+			<h1>Notes.md</h1>
+			<DarkModeToggle />
+		</nav>
+		<slot />
+	</main>
+{/if}
 
 <style>
 	.navbar {
@@ -32,5 +61,24 @@
 		flex-direction: column;
 		justify-content: center;
 		align-items: center;
+	}
+	.login-form {
+		display: flex;
+		flex-direction: row;
+		align-items: start;
+		justify-content: center;
+		gap: 10px;
+		width: 100%;
+		height: 100%;
+		margin-top: 200px;
+	}
+
+	.login-form input {
+		width: 300px;
+		padding: 10px;
+		border: 1px solid var(--color-border);
+		background-color: var(--color-muted);
+		border-radius: 5px;
+		outline: none;
 	}
 </style>

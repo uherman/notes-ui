@@ -1,21 +1,19 @@
 <script lang="ts">
 	import Editor from '$lib/components/markdown/editor.svelte';
 	import type { Note } from '$lib/types';
-	import { deleteNote, getNotes, saveNote } from '$lib/utils/noteUtils';
+	import { deleteNote, notes, saveNote } from '$lib/utils/noteUtils';
 	import { nanoid } from 'nanoid';
 	import { onMount } from 'svelte';
 	import Modal from '$lib/components/modal.svelte';
 
 	let note: Note | undefined;
-	let notes: Note[] = [];
 
 	let showModal = false;
 	let noteToDelete: Note | undefined;
 
 	onMount(async () => {
-		notes = await getNotes();
-		if (notes.length > 0) {
-			note = notes[0];
+		if ($notes.length > 0) {
+			note = $notes[0];
 		}
 	});
 
@@ -30,12 +28,10 @@
 			updated: new Date()
 		};
 		saveNote(note);
-		notes = [note, ...notes];
 	};
 
 	const save = async (note: Note) => {
 		await saveNote(note);
-		notes = await getNotes();
 	};
 
 	const getTitle = (content: string) => {
@@ -59,7 +55,6 @@
 			return;
 		}
 
-		notes = notes.filter((n) => n.id !== noteToDelete?.id);
 		await deleteNote(noteToDelete.id);
 		closeModal();
 	};
@@ -72,7 +67,7 @@
 		</div>
 		<div class="notes-container">
 			<ul>
-				{#each notes as note}
+				{#each $notes.sort((a, b) => new Date(b.updated).getTime() - new Date(a.updated).getTime()) as note}
 					<li class="note-item">
 						<button class="note" on:click={() => selectNote(note)}>
 							<p class="note-title">

@@ -1,54 +1,49 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: notes-md-api
+  name: notes-md-ui
   labels:
-    app: notes-md-api
+    app: notes-md-ui
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: notes-md-api
+      app: notes-md-ui
   template:
     metadata:
       labels:
-        app: notes-md-api
+        app: notes-md-ui
     spec:
       containers:
-        - name: notes-md-api
-          image: uherman/notes-md-api:latest
+        - name: notes-md-ui
+          image: uherman/notes-md-ui:latest
           imagePullPolicy: Always
           ports:
-            - containerPort: 5000
+            - containerPort: 3000
           env:
-            - name: REDIS_URL
-              value: ${REDIS_URL}
-            - name: TOKEN
-              value: ${TOKEN}
-            - name: RUST_LOG
-              value: info
+            - name: PUBLIC_API_URL
+              value: ${PUBLIC_API_URL}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: notes-md-api
+  name: notes-md-ui
 spec:
-  type: ClusterIP
+  type: NodePort
   selector:
-    app: notes-md-api
+    app: notes-md-ui
   ports:
     - protocol: TCP
-      port: 5000
-      targetPort: 5000
+      port: 3000
+      targetPort: 3000
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: notes-md-api
+  name: notes-md-ui
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-production
     ingressClassName: traefik
-
 spec:
   tls:
     - hosts:
@@ -59,20 +54,20 @@ spec:
     - host: notes.null.care
       http:
         paths:
-          - path: /api
+          - path: /
             pathType: Prefix
             backend:
               service:
-                name: notes-md-api
+                name: notes-md-ui
                 port:
-                  number: 5000
+                  number: 3000
     - host: www.notes.null.care
       http:
         paths:
-          - path: /api
+          - path: /
             pathType: Prefix
             backend:
               service:
-                name: notes-md-api
+                name: notes-md-ui
                 port:
-                  number: 5000
+                  number: 3000
