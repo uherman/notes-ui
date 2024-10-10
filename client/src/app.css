@@ -212,3 +212,30 @@ hr {
 .flex-row {
 	flex-direction: row;
 }
+
+.text-center {
+	text-align: center;
+}
+
+.text-left {
+	text-align: left;
+}
+
+.text-right {
+	text-align: right;
+}
+
+.fade {
+	animation: fadeIn 0.3s;
+}
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+.overflow-hidden {
+	overflow: hidden;
+}

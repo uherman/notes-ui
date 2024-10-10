@@ -1,5 +1,7 @@
 import { writable } from 'svelte/store';
+import type { Note } from './types';
 
+export const notes = writable<Note[]>([]);
 export const connected = writable(false);
 export const canReconnect = writable(false);
 

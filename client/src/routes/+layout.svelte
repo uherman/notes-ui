@@ -4,9 +4,13 @@
 	import '../markdown.css';
 	import 'highlight.js/styles/github.css';
 	import { ModeWatcher } from 'mode-watcher';
-	import { tryReconnect } from '$lib/utils/noteUtils';
+	import { tryReconnect } from '$lib/utils/websocketUtils';
 	import { canReconnect, connected, toggleViewMode, viewMode } from '$lib/stores';
 	import { Toaster } from 'svelte-sonner';
+
+	let hasLoaded = false;
+
+	$: $connected && (hasLoaded = true);
 </script>
 
 <ModeWatcher />
@@ -37,7 +41,13 @@
 			<DarkModeToggle />
 		</div>
 	</nav>
-	<slot />
+	{#if hasLoaded}
+		<span class="h-full w-full fade overflow-hidden">
+			<slot />
+		</span>
+	{:else}
+		<div class="flex flex-col items-center justify-center h-full w-full" />
+	{/if}
 </main>
 
 <style>

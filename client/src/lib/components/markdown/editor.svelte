@@ -22,18 +22,7 @@
 	];
 
 	export let note: Note;
-
 	export let save: (note: Note) => Promise<void>;
-
-	const handleKeyDown = async (event: KeyboardEvent) => {
-		if (event.key === 's' && event.metaKey && event.shiftKey) {
-			event.preventDefault();
-			await save(note);
-		}
-
-		// TODO: When using a real backend, autosave should be implemented with a debounce
-		await save(note);
-	};
 
 	function handleTab(event: KeyboardEvent) {
 		if (event.key === 'Tab') {
@@ -55,7 +44,7 @@
 </script>
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->
-<div class="container" on:keydown={handleKeyDown}>
+<div class="container">
 	{#if $viewMode !== 'preview'}
 		<textarea
 			bind:value={note.content}
@@ -65,6 +54,7 @@
 			autocapitalize="off"
 			spellcheck="false"
 			on:keydown={handleTab}
+			on:input={() => save(note)}
 		></textarea>
 	{/if}
 	{#if $viewMode !== 'editor'}
@@ -95,7 +85,7 @@
 		flex-direction: row;
 		height: 100%;
 		padding-bottom: 0;
-		max-height: calc(100vh - 75px);
+		max-height: calc(100vh - 80px);
 	}
 
 	.markdown-body {
