@@ -1,4 +1,4 @@
-import { signedIn } from '$lib/stores';
+import { canReconnect, connected } from '$lib/stores';
 import type { Note } from '$lib/types';
 import { toast } from 'svelte-sonner';
 import { writable } from 'svelte/store';
@@ -14,37 +14,85 @@ export const notes = writable<Note[]>([]);
 
 let ws: WebSocket;
 
-export const tryReconnect = async () => {
-	const userInfo = await fetch(`/Account/Profile`).then((res) => res.json());
-	connect(userInfo.name);
+export const tryReconnect = async (
+	loading: string = 'Connection lost, reconnecting...',
+	error: string = 'Failed to reconnect... Try reloading the page.'
+) => {
+	canReconnect.set(false);
+	setTimeout(() => {
+		toast.promise(reconnect, {
+			loading,
+			success: () => {
+				canReconnect.set(true);
+				return 'Connected!';
+			},
+			error: () => {
+				canReconnect.set(true);
+				return error;
+			}
+		});
+	}, 100);
 };
 
-export const connect = (username: string) => {
-	ws = new WebSocket(`${PUBLIC_API_URL}?username=${username}`);
-	ws.onclose = (event) => {
-		console.log('Websocket closed:', event.code, event);
-		signedIn.set(false);
-	};
-
-	ws.onmessage = (event) => {
+async function reconnect() {
+	for (let i = 0; i < 10; i++) {
 		try {
-			const data = JSON.parse(event.data);
-			if (!data.response) {
-				notes.set(data);
-				signedIn.set(true);
-			} else {
-				if (data.response === 200) {
-					ws.send(JSON.stringify({ command: Command.Get }));
-				}
-			}
+			const userInfo = await fetch(`/Account/Profile`).then((res) => res.json());
+			await connect(userInfo.name);
+			return;
 		} catch {
-			console.error('Error parsing notes' + event.data);
+			await new Promise((resolve) => setTimeout(resolve, 1000));
 		}
-	};
+	}
 
-	ws.onopen = () => {
-		ws.send(JSON.stringify({ command: Command.Get }));
-	};
+	return Promise.reject('Failed to reconnect');
+}
+
+connected.subscribe((value) => {
+	if (!value) {
+		if (!ws) {
+			canReconnect.set(false);
+			reconnect()
+				.catch(() => toast.error('Failed to connect'))
+				.finally(() => canReconnect.set(true));
+		} else {
+			tryReconnect().catch(() => {
+				console.error('Failed to reconnect');
+			});
+		}
+	}
+});
+
+const connect = (username: string) => {
+	return new Promise<void>((resolve, reject) => {
+		ws = new WebSocket(`${PUBLIC_API_URL}?username=${username}`);
+		ws.onclose = (event) => {
+			console.log('Websocket closed:', event.code, event);
+			connected.set(false);
+			reject();
+		};
+
+		ws.onmessage = (event) => {
+			try {
+				const data = JSON.parse(event.data);
+				if (!data.response) {
+					notes.set(data);
+					connected.set(true);
+					resolve();
+				} else {
+					if (data.response === 200) {
+						ws.send(JSON.stringify({ command: Command.Get }));
+					}
+				}
+			} catch {
+				console.error('Error parsing notes' + event.data);
+			}
+		};
+
+		ws.onopen = () => {
+			ws.send(JSON.stringify({ command: Command.Get }));
+		};
+	});
 };
 
 export const saveNote = async (note: Note) => {

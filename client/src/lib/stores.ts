@@ -1,6 +1,7 @@
 import { writable } from 'svelte/store';
 
-export const signedIn = writable(false);
+export const connected = writable(false);
+export const canReconnect = writable(false);
 
 const viewModes: ('split' | 'editor' | 'preview')[] = ['split', 'editor', 'preview'];
 let viewModeIndex = 0;
