@@ -3,6 +3,7 @@ import type { Note } from '$lib/types';
 import { toast } from 'svelte-sonner';
 import { PUBLIC_API_URL } from '$env/static/public';
 import { sortNotes } from './noteUtils';
+import { goto } from '$app/navigation';
 
 enum Command {
 	Get = 'Get',
@@ -67,6 +68,9 @@ const connect = (username: string) => {
 		ws.onclose = (event) => {
 			console.log('Websocket closed:', event.code, event);
 			connected.set(false);
+			if (event.code === 401) {
+				goto('/login');
+			}
 			reject();
 		};
 

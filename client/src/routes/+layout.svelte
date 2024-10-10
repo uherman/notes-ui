@@ -10,7 +10,7 @@
 
 	let hasLoaded = false;
 
-	$: $connected && (hasLoaded = true);
+	$: !hasLoaded && $canReconnect && (hasLoaded = true);
 </script>
 
 <ModeWatcher />
