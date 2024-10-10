@@ -26,6 +26,13 @@ spec:
               memory: "256Mi"
           ports:
             - containerPort: 5000
+          env:
+            - name: RedisOptions__ConnectionString
+              value: ${RedisOptions__ConnectionString}
+            - name: RedisOptions__DataProtectionKey
+              value: ${RedisOptions__DataProtectionKey}
+            - name: RedisOptions__DefaultDatabase
+              value: "${RedisOptions__DefaultDatabase}"
 ---
 
 apiVersion: v1

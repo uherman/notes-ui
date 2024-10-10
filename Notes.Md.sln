@@ -5,6 +5,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "proxy", "proxy", "{C8EA5BE2
 		proxy\Dockerfile = proxy\Dockerfile
 		proxy\deploy.sh = proxy\deploy.sh
 		proxy\deployment.yml = proxy\deployment.yml
+		proxy\.env = proxy\.env
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Proxy", "proxy\Proxy\Proxy.csproj", "{D2331B43-57FC-4091-8727-6527504E28DE}"

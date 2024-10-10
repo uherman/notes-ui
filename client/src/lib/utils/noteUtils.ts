@@ -14,28 +14,15 @@ export const notes = writable<Note[]>([]);
 
 let ws: WebSocket;
 
-const getSessionToken = () => {
-	// HACK: Using this until a more proper auth flow is implemented
-	// Have a look at session based auth in rust:
-	// - https://www.lpalmieri.com/posts/session-based-authentication-in-rust/
-	// - https://www.shuttle.rs/blog/2022/08/11/authentication-tutorial
-	const token = sessionStorage.getItem('token');
-	if (token) {
-		return window.atob(token).substring(2, token.length);
-	}
+export const tryReconnect = async () => {
+	const userInfo = await fetch(`/Account/Profile`).then((res) => res.json());
+	connect(userInfo.name);
 };
 
-export const tryReconnect = () => {
-	const token = getSessionToken();
-	if (token) {
-		connect(token);
-	}
-};
-
-export const connect = (token: string) => {
-	ws = new WebSocket(`${PUBLIC_API_URL}?token=${token}`);
+export const connect = (username: string) => {
+	ws = new WebSocket(`${PUBLIC_API_URL}?username=${username}`);
 	ws.onclose = (event) => {
-		console.log('Websocket closed:', event.code, event.reason);
+		console.log('Websocket closed:', event.code, event);
 		signedIn.set(false);
 	};
 
@@ -45,8 +32,6 @@ export const connect = (token: string) => {
 			if (!data.response) {
 				notes.set(data);
 				signedIn.set(true);
-
-				sessionStorage.setItem('token', window.btoa('y6' + token));
 			} else {
 				if (data.response === 200) {
 					ws.send(JSON.stringify({ command: Command.Get }));

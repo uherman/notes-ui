@@ -7,7 +7,8 @@ extern crate dotenv;
 
 use dotenv::dotenv;
 use futures_util::{SinkExt, StreamExt};
-use redis::aio::MultiplexedConnection;
+use redis::{aio::MultiplexedConnection, AsyncCommands};
+use rocket::http::CookieJar;
 use std::{borrow::Cow, env};
 use websocket_handler::handle_websocket_message;
 use ws::frame::{CloseCode, CloseFrame};
@@ -26,9 +27,52 @@ use ws::frame::{CloseCode, CloseFrame};
 /// # Returns
 ///
 /// A WebSocket channel.
-#[get("/ws?<token>")]
-async fn web_socket(ws: ws::WebSocket, token: String) -> ws::Channel<'static> {
-    if token != get_env_var("TOKEN") {
+#[get("/ws?<username>")]
+async fn web_socket(
+    ws: ws::WebSocket,
+    jar: &CookieJar<'_>,
+    username: String,
+) -> ws::Channel<'static> {
+    let cookie = match jar.get("__Host.__ws") {
+        Some(cookie) => cookie.value(),
+        None => {
+            return ws.channel(move |mut stream| {
+                Box::pin(async move {
+                    stream
+                        .send(ws::Message::Close(Some(CloseFrame {
+                            code: CloseCode::Bad(401),
+                            reason: Cow::Borrowed("Unauthorized"),
+                        })))
+                        .await
+                        .unwrap();
+                    info!("WebSocket closed: No cookie");
+                    Ok(())
+                })
+            });
+        }
+    };
+
+    let mut db = get_redis_connection().await.unwrap();
+    let ws_token: String = match db.hget(format!("user:{}", username), "wsToken").await {
+        Ok(token) => token,
+        Err(_) => {
+            return ws.channel(move |mut stream| {
+                Box::pin(async move {
+                    stream
+                        .send(ws::Message::Close(Some(CloseFrame {
+                            code: CloseCode::Bad(401),
+                            reason: Cow::Borrowed("Unauthorized"),
+                        })))
+                        .await
+                        .unwrap();
+                    info!("WebSocket closed: No token");
+                    Ok(())
+                })
+            });
+        }
+    };
+
+    if cookie != ws_token {
         return ws.channel(move |mut stream| {
             Box::pin(async move {
                 stream
@@ -38,6 +82,7 @@ async fn web_socket(ws: ws::WebSocket, token: String) -> ws::Channel<'static> {
                     })))
                     .await
                     .unwrap();
+                info!("WebSocket closed: Unauthorized");
                 Ok(())
             })
         });
@@ -48,12 +93,8 @@ async fn web_socket(ws: ws::WebSocket, token: String) -> ws::Channel<'static> {
             while let Some(message) = stream.next().await {
                 if let Ok(msg) = message {
                     if msg.is_text() {
-                        handle_websocket_message(
-                            &mut stream,
-                            msg.into_text().unwrap(),
-                            get_redis_connection().await.unwrap(),
-                        )
-                        .await;
+                        handle_websocket_message(&mut stream, msg.into_text().unwrap(), db.clone())
+                            .await;
                     }
                 }
             }

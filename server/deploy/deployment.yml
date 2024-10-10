@@ -29,8 +29,6 @@ spec:
           env:
             - name: REDIS_URL
               value: ${REDIS_URL}
-            - name: TOKEN
-              value: ${TOKEN}
             - name: RUST_LOG
               value: info
 ---

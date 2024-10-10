@@ -1,0 +1,183 @@
+@page
+@model Proxy.Pages.Login
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<!--suppress ALL -->
+<html lang="en">
+<head>
+    <link rel="icon" href="https://fav.farm/📝" />
+    <meta charset="UTF-8">
+    <title>Notes.md</title>
+</head>
+<body class="dark">
+<main class="main">
+    <form action="/Account/Login" class="login-form flex flex-col" autocomplete="on" method="POST">
+        <input type="hidden" name="__RequestVerificationToken" value="@Antiforgery.GetAndStoreTokens(HttpContext).RequestToken"/>
+        <label class="flex flex-col" for="username">
+            Username
+            <input id="username" name="username" placeholder="Username" type="text" required/>
+        </label>
+        <label class="flex flex-col" for="password">
+            Password
+            <input id="password" name="password" placeholder="Password" type="password" required/>
+        </label>
+        <button class="btn-primary w-full" type="submit">Login</button>
+    </form>
+</main>
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        background-color: inherit;
+        color: inherit;
+        border-color: var(--color-border) !important;
+    }
+
+    :root {
+        --color-bg: #eff1f5; /* Base */
+        --color-text: #4c4f69; /* Text */
+        --color-subtext1: #5c5f77; /* Subtext1 */
+        --color-subtext0: #6c6f85; /* Subtext0 */
+        --color-accent: #1e66f5; /* Blue */
+        --color-success: #40a02b; /* Green */
+        --color-attention: #df8e1d; /* Yellow */
+        --color-danger: #d20f39; /* Red */
+        --color-border: #dce0e8; /* Crust */
+        --color-muted: #e6e9ef; /* Mantle */
+        --color-overlay: #7c7f93; /* Overlay */
+        --color-primary: #8839ef;
+    }
+
+    .dark {
+        --color-bg: #24273a; /* Base */
+        --color-text: #cad3f5; /* Text */
+        --color-subtext1: #b8c0e0; /* Subtext1 */
+        --color-subtext0: #a5adcb; /* Subtext0 */
+        --color-accent: #8aadf4; /* Blue */
+        --color-success: #a6da95; /* Green */
+        --color-attention: #eed49f; /* Yellow */
+        --color-danger: #ed8796; /* Red */
+        --color-border: #181926; /* Crust */
+        --color-muted: #1e2030; /* Mantle */
+        --color-overlay: #6e738d; /* Overlay */
+        --color-primary: #c6a0f6;
+    }
+
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus,
+    input:-webkit-autofill:active {
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: #4c4f69;
+        transition: background-color 5000s ease-in-out 0s;
+        box-shadow: inset 0 0 20px 20px var(--color-muted);
+    }
+
+    input:-webkit-autofill {
+        -webkit-text-fill-color: var(--color-text) !important;
+    }
+
+    body {
+        background-color: var(--color-bg);
+        color: var(--color-text);
+        font-family: 'JetBrains Mono', Courier, monospace;
+    }
+
+    label {
+        user-select: none;
+        font-size: 0.9rem;
+        color: var(--color-primary);
+        gap: 10px;
+    }
+
+    button {
+        background-color: var(--color-muted);
+        color: var(--color-bg);
+        border: 1px solid var(--color-muted);
+    }
+
+    input,
+    textarea {
+        background-color: var(--color-bg);
+        color: var(--color-text);
+        font-family: 'JetBrains Mono', Courier, monospace;
+    }
+
+    a {
+        color: var(--color-accent);
+    }
+
+    hr {
+        border-color: var(--color-muted) !important;
+    }
+
+    .w-full {
+        width: 100%;
+    }
+
+    .btn-primary {
+        display: block;
+        padding: 10px;
+        font-size: 1rem;
+        font-weight: bold;
+        color: var(--color-primary);
+        background-color: transparent;
+        border-color: var(--color-primary) !important;
+        border: 1px solid;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.2s ease,
+        color 0.2s ease;
+    }
+
+    .btn-primary:hover {
+        background-color: var(--color-primary);
+        color: var(--color-bg);
+    }
+
+    .flex {
+        display: flex;
+    }
+
+    .flex-col {
+        flex-direction: column;
+    }
+
+    .main {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 100px;
+    }
+
+    .login-form {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        width: 300px;
+        height: 100%;
+        margin-top: 50px;
+    }
+
+    .login-form input {
+        width: 300px;
+        padding: 10px;
+        border: 1px solid var(--color-border);
+        background-color: var(--color-muted);
+        border-radius: 5px;
+        outline: none;
+    }
+</style>
+</body>
+</html>
