@@ -20,6 +20,7 @@
 	--color-muted: #e6e9ef; /* Mantle */
 	--color-overlay: #7c7f93; /* Overlay */
 	--color-primary: #8839ef;
+	--color-selected: #dce0e8;
 }
 
 .dark {
@@ -35,6 +36,7 @@
 	--color-muted: #1e2030; /* Mantle */
 	--color-overlay: #6e738d; /* Overlay */
 	--color-primary: #c6a0f6;
+	--color-selected: #24273a;
 }
 
 body {

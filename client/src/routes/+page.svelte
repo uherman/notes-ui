@@ -7,28 +7,28 @@
 	import Modal from '$lib/components/modal.svelte';
 	import { notes } from '$lib/stores';
 
-	let note: Note | undefined;
+	let selectedNote: Note | undefined;
 
 	let showModal = false;
 	let noteToDelete: Note | undefined;
 
 	onMount(async () => {
 		if ($notes.length > 0) {
-			note = $notes[0];
+			selectedNote = $notes[0];
 		}
 	});
 
 	const selectNote = (n: Note) => {
-		note = n;
+		selectedNote = n;
 	};
 
 	const createNewNote = () => {
-		note = {
+		selectedNote = {
 			id: nanoid(),
 			content: '# New Note\n\nStart writing your note here...',
 			updated: new Date()
 		};
-		saveNote(note);
+		saveNote(selectedNote);
 	};
 
 	const save = async (note: Note) => {
@@ -60,8 +60,8 @@
 		closeModal();
 	};
 
-	$: if (!note && $notes.length > 0) {
-		note = $notes[0];
+	$: if (!selectedNote && $notes.length > 0) {
+		selectedNote = $notes[0];
 	}
 </script>
 
@@ -74,7 +74,10 @@
 			<ul>
 				{#each $notes as note}
 					<li class="note-item">
-						<button class="note" on:click={() => selectNote(note)}>
+						<button
+							class={`note ${selectedNote?.id === note.id ? 'selected-note' : ''}`}
+							on:click={() => selectNote(note)}
+						>
 							<p class="note-title">
 								{getTitle(note.content)}
 							</p>
@@ -88,9 +91,9 @@
 		</div>
 	</div>
 
-	{#if note}
+	{#if selectedNote}
 		<div class="editor h-full">
-			<Editor {note} {save} />
+			<Editor note={selectedNote} {save} />
 		</div>
 	{/if}
 
@@ -187,7 +190,12 @@
 		display: flex;
 		flex-direction: row;
 		justify-content: space-between;
+		align-items: center;
 		text-overflow: ellipsis;
+	}
+
+	.note.selected-note {
+		background-color: var(--color-selected);
 	}
 
 	.note-title {
