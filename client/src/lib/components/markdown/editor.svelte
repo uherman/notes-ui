@@ -107,4 +107,10 @@
 		border-right: 1px solid;
 		outline: none;
 	}
+
+	@media (max-width: 768px) {
+		textarea.editor {
+			font-size: 16px;
+		}
+	}
 </style>
