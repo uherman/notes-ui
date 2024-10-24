@@ -43,6 +43,7 @@ body {
 	background-color: var(--color-bg);
 	color: var(--color-text);
 	font-family: 'JetBrains Mono', Courier, monospace;
+	touch-action: manipulation;
 }
 
 button {
