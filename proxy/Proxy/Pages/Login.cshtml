@@ -11,9 +11,10 @@
 <!--suppress ALL -->
 <html lang="en">
 <head>
-    <link rel="icon" href="https://fav.farm/📝" />
+    <link rel="icon" href="https://fav.farm/📝"/>
     <meta charset="UTF-8">
     <title>Notes.md</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body class="dark">
 <main class="main">
@@ -42,32 +43,32 @@
     }
 
     :root {
-        --color-bg: #eff1f5; /* Base */
-        --color-text: #4c4f69; /* Text */
-        --color-subtext1: #5c5f77; /* Subtext1 */
-        --color-subtext0: #6c6f85; /* Subtext0 */
-        --color-accent: #1e66f5; /* Blue */
-        --color-success: #40a02b; /* Green */
-        --color-attention: #df8e1d; /* Yellow */
-        --color-danger: #d20f39; /* Red */
-        --color-border: #dce0e8; /* Crust */
-        --color-muted: #e6e9ef; /* Mantle */
-        --color-overlay: #7c7f93; /* Overlay */
+        --color-bg: #eff1f5;
+        --color-text: #4c4f69;
+        --color-subtext1: #5c5f77;
+        --color-subtext0: #6c6f85;
+        --color-accent: #1e66f5;
+        --color-success: #40a02b;
+        --color-attention: #df8e1d;
+        --color-danger: #d20f39;
+        --color-border: #dce0e8;
+        --color-muted: #e6e9ef;
+        --color-overlay: #7c7f93;
         --color-primary: #8839ef;
     }
 
     .dark {
-        --color-bg: #24273a; /* Base */
-        --color-text: #cad3f5; /* Text */
-        --color-subtext1: #b8c0e0; /* Subtext1 */
-        --color-subtext0: #a5adcb; /* Subtext0 */
-        --color-accent: #8aadf4; /* Blue */
-        --color-success: #a6da95; /* Green */
-        --color-attention: #eed49f; /* Yellow */
-        --color-danger: #ed8796; /* Red */
-        --color-border: #181926; /* Crust */
-        --color-muted: #1e2030; /* Mantle */
-        --color-overlay: #6e738d; /* Overlay */
+        --color-bg: #24273a;
+        --color-text: #cad3f5;
+        --color-subtext1: #b8c0e0;
+        --color-subtext0: #a5adcb;
+        --color-accent: #8aadf4;
+        --color-success: #a6da95;
+        --color-attention: #eed49f;
+        --color-danger: #ed8796;
+        --color-border: #181926;
+        --color-muted: #1e2030;
+        --color-overlay: #6e738d;
         --color-primary: #c6a0f6;
     }
 
@@ -177,6 +178,35 @@
         background-color: var(--color-muted);
         border-radius: 5px;
         outline: none;
+        font-size: 16px;
+    }
+
+    /* Responsive adjustments */
+    @@media (max-width: 768px) {
+        .main {
+            padding: 50px;
+        }
+        label {
+            width: 100%;
+        }
+        .login-form {
+            width: 100%;
+            max-width: 400px;
+        }
+        .login-form input {
+            width: 100%;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .main {
+            padding: 20px;
+        }
+
+        .btn-primary {
+            font-size: 0.9rem;
+            padding: 8px;
+        }
     }
 </style>
 </body>
