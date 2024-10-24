@@ -46,7 +46,18 @@
 			<slot />
 		</span>
 	{:else}
-		<div class="flex flex-col items-center justify-center h-full w-full" />
+		<div class="flex flex-col items-center justify-center h-full w-full">
+			<div
+				style="display:flex; justify-content:center; align-items:center; margin-top: 30px; padding: 3rem; flex-direction: column; gap: 40px;"
+			>
+				<p>You are stuck in the matrix</p>
+				<a
+					class="btn-primary w-full"
+					style="text-align: center; text-decoration:none;"
+					href="/login">Login</a
+				>
+			</div>
+		</div>
 	{/if}
 </main>
 
