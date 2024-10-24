@@ -22,6 +22,7 @@
 
 	const selectNote = (n: Note) => {
 		selectedNote = n;
+		showSidebar = false;
 	};
 
 	const createNewNote = () => {
@@ -31,6 +32,7 @@
 			updated: new Date()
 		};
 		saveNote(selectedNote);
+		showSidebar = false;
 	};
 
 	const save = async (note: Note) => {
@@ -60,6 +62,7 @@
 
 		await deleteNote(noteToDelete.id);
 		closeModal();
+		$notes.length > 1 && (selectedNote = $notes[1]);
 	};
 
 	const toggleSidebar = () => (showSidebar = !showSidebar);
