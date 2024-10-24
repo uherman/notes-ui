@@ -52,7 +52,10 @@ connected.subscribe((value) => {
 		if (!ws) {
 			canReconnect.set(false);
 			reconnect()
-				.catch(() => toast.error('Failed to connect'))
+				.catch(() => {
+					toast.error('Failed to connect');
+					goto('/login');
+				})
 				.finally(() => canReconnect.set(true));
 		} else {
 			tryReconnect().catch(() => {
