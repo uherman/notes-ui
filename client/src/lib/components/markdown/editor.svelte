@@ -13,6 +13,7 @@
 	import type { Note } from '$lib/types';
 	import { mode } from 'mode-watcher';
 	import { viewMode } from '$lib/stores';
+	import PreRenderer from './pre-renderer.svelte';
 
 	const plugins: Plugin[] = [
 		{
@@ -20,7 +21,8 @@
 				rehypeHighlight,
 				{ ignoreMissing: true, languages: { typescript, csharp, rust, bash, sql, json, yaml } }
 			],
-			remarkPlugin: [remarkGfm]
+			remarkPlugin: [remarkGfm],
+			renderer: { pre: PreRenderer }
 		}
 	];
 
