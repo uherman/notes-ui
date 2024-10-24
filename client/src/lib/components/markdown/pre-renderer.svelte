@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { Copy } from 'lucide-svelte';
-	import { toast } from 'svelte-sonner';
+	import { Copy, CopyCheck } from 'lucide-svelte';
 
 	let element: HTMLPreElement;
+	let copied = false;
 
 	const getTextContent = (): string => {
 		if (!element) return '';
@@ -17,14 +17,22 @@
 
 	const copy = () => {
 		navigator.clipboard.writeText(getTextContent());
-		toast.success('Copied to clipboard');
+		copied = true;
+		const timeout = setTimeout(() => {
+			copied = false;
+			clearTimeout(timeout);
+		}, 800);
 	};
 </script>
 
 <pre class="flex relative" bind:this={element}>
 	<slot />
-    <button class="copy-btn" on:click={copy}>
-        <Copy size="20" />
+    <button class={`copy-btn ${copied ? 'copied' : ''}`} on:click={copy}>
+        {#if copied}
+			<CopyCheck size="20" />
+		{:else}
+			<Copy size="20" />
+		{/if}
     </button>
 </pre>
 
@@ -56,5 +64,11 @@
 	.copy-btn:hover {
 		color: var(--color-primary);
 		background-color: var(--color-muted);
+	}
+	.copy-btn:active {
+		transform: scale(0.8);
+	}
+	.copy-btn.copied {
+		color: var(--color-success);
 	}
 </style>
