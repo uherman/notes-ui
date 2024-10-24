@@ -54,7 +54,9 @@ connected.subscribe((value) => {
 			reconnect()
 				.catch(() => {
 					toast.error('Failed to connect');
-					goto('/login');
+					if (typeof window !== 'undefined') {
+						goto('/login');
+					}
 				})
 				.finally(() => canReconnect.set(true));
 		} else {
