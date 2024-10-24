@@ -7,6 +7,8 @@
 	import bash from 'highlight.js/lib/languages/bash';
 	import rust from 'highlight.js/lib/languages/rust';
 	import sql from 'highlight.js/lib/languages/sql';
+	import json from 'highlight.js/lib/languages/json';
+	import yaml from 'highlight.js/lib/languages/yaml';
 	import rehypeHighlight from 'rehype-highlight';
 	import type { Note } from '$lib/types';
 	import { mode } from 'mode-watcher';
@@ -16,7 +18,7 @@
 		{
 			rehypePlugin: [
 				rehypeHighlight,
-				{ ignoreMissing: true, languages: { typescript, csharp, rust, bash, sql } }
+				{ ignoreMissing: true, languages: { typescript, csharp, rust, bash, sql, json, yaml } }
 			],
 			remarkPlugin: [remarkGfm]
 		}
