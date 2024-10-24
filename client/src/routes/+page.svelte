@@ -6,9 +6,11 @@
 	import { onMount } from 'svelte';
 	import Modal from '$lib/components/modal.svelte';
 	import { notes } from '$lib/stores';
+	import { Menu } from 'lucide-svelte';
 
 	let selectedNote: Note | undefined;
 
+	let showSidebar = false;
 	let showModal = false;
 	let noteToDelete: Note | undefined;
 
@@ -60,13 +62,20 @@
 		closeModal();
 	};
 
+	const toggleSidebar = () => (showSidebar = !showSidebar);
+
 	$: if (!selectedNote && $notes.length > 0) {
 		selectedNote = $notes[0];
 	}
 </script>
 
+<div class="sidebar-toggle">
+	<button class="toggle-btn" on:click={toggleSidebar}>
+		<Menu />
+	</button>
+</div>
 <div class="h-full w-full relative">
-	<div class="sidebar">
+	<div class={`sidebar ${showSidebar ? 'open' : ''}`}>
 		<div class="new-note-btn-container">
 			<button class="new-note-btn" on:click={createNewNote}>New Note</button>
 		</div>
@@ -150,6 +159,48 @@
 		background-color: var(--color-muted);
 		overflow-y: auto;
 		border-right: 1px solid var(--color-border);
+	}
+
+	.sidebar-toggle {
+		display: none;
+		position: absolute;
+		top: 18px;
+		left: 10px;
+	}
+
+	.toggle-btn {
+		display: flex;
+		padding: 10px;
+		font-size: 1rem;
+		font-weight: bold;
+		color: var(--color-primary);
+		background-color: var(--color-bg);
+		border-color: var(--color-primary) !important;
+		border: 1px solid;
+		border-radius: 5px;
+		cursor: pointer;
+		transition:
+			background-color 0.2s ease,
+			color 0.2s ease;
+	}
+
+	@media (max-width: 768px) {
+		.sidebar-toggle {
+			display: block;
+		}
+
+		.sidebar {
+			transform: translateX(-250px);
+			transition: transform 0.2s ease;
+		}
+
+		.sidebar.open {
+			transform: translateX(0);
+		}
+
+		.editor {
+			margin-left: 0;
+		}
 	}
 
 	/* Notes container inside the sidebar */

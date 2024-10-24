@@ -19,7 +19,7 @@
 <main class="main">
 	<nav class="navbar">
 		<h1>Notes.md</h1>
-		<div class="flex flex-row" style="gap: 30px; align-items:center;">
+		<div class="flex flex-row nav-right">
 			{#if $connected}
 				<div class="indicator-btn" style="cursor: initial;">
 					<span class="indicator bg-success" />
@@ -74,7 +74,21 @@
 		padding: 20px;
 		display: flex;
 		justify-content: space-between;
+		align-items: center;
 		background-color: var(--color-muted);
+	}
+	.nav-right {
+		gap: 30px;
+		align-items: center;
+	}
+
+	@media (max-width: 768px) {
+		.navbar {
+			padding-left: 70px;
+		}
+		.nav-right {
+			gap: 10px;
+		}
 	}
 
 	.main {
